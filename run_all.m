@@ -24,11 +24,13 @@ phg.writeTableAtomic(audit, fullfile(cfg.tableDir, 'derived_data_audit.csv'));
 phg.makeMethodsFigure(cfg);
 
 analysis = phg.runDerivedAnalyses(tables.channel, cfg);
+sensitivity = phg.runPrimarySensitivity(tables.channel, cfg);
 ripple = phg.runRippleBandTest(tables.wavelet, tables.channel, cfg);
 receptors = phg.runReceptorAlignment(tables.channel, cfg);
 phg.makeReceptorSurfaceFigure(tables.channel, cfg);
 
 phg.makeDerivedPublicationFigures(tables, cfg, analysis);
+phg.makeForestTable(cfg, analysis);
 phg.makeElectrodeLocalization(tables.channel, cfg, 'mode', "effect");
 phg.makeElectrodeLocalization(tables.channel, cfg, 'mode', "region");
 phg.makeElectrodeLocalization(tables.channel, cfg, 'mode', "polarity");
