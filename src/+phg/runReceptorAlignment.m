@@ -15,10 +15,21 @@ function outputs = runReceptorAlignment(channel, cfg)
 %      contributed receptor data, so this is a normative-atlas comparison and
 %      not a measurement of these brains.
 %   2. Receptor maps are spatially smooth and so is the brain, which makes
-%      naive p-values anticonservative. The patient and shaft random effects
-%      absorb some of that, but a spatially constrained null (spin test or
-%      variogram-matched surrogates) is the proper control and is NOT done
-%      here. Treat p-values as descriptive.
+%      naive p-values badly anticonservative. A variogram-matched spatial null
+%      HAS now been run (phg.spatialNullSurrogates, 500 surrogates per model)
+%      and it is the number that counts. The parametric p-values below are
+%      retained only to show the size of the inflation:
+%
+%        NET,   all contacts     parametric 0.00015  spatial null 0.044
+%        NET,   neocortex only   parametric 0.0093   spatial null 0.138
+%        VAChT, all contacts     parametric 0.0019   spatial null 0.339
+%        VAChT, neocortex only   parametric 0.37     spatial null 0.597
+%
+%      The conclusion is negative. The only model that clears 0.05 against the
+%      spatial null is the one that still contains the cortex-versus-subcortex
+%      contrast; the neocortex-only model, which is the confound-free version
+%      and the one worth believing, does not. Do not report this as evidence
+%      for a noradrenergic account.
 %   3. Subcortical PET is degraded by partial-volume effects, and the
 %      hippocampus sits next to the ventricles. A hippocampus-versus-cortex
 %      contrast on these maps can be an imaging artefact, which is why the
@@ -92,7 +103,8 @@ phg.writeTableAtomic(resultTable, ...
 outputs = struct('resultTable', resultTable, 'contactTable', excursion);
 
 for k = 1:height(resultTable)
-    fprintf(['[PHG] Receptor alignment (exploratory, no spatial null): ' ...
+    fprintf(['[PHG] Receptor alignment (parametric P shown; see ' ...
+        'receptor_spatial_null.csv for the number that counts): ' ...
         '%s, %s — OR %.2f [%.2f, %.2f], P = %.3g (n = %d).\n'], ...
         resultTable.marker(k), resultTable.sample(k), ...
         resultTable.odds_ratio(k), resultTable.odds_ratio_ci95_low(k), ...
