@@ -1,5 +1,7 @@
 %% Spatial-null test for the receptor alignment.
-repoRoot = '/Users/nielspacheco/Desktop/Research/Rolston lab/Pupils/pupil-ieeg-matlab';
+% Resolve the repository from this file's own location so the script carries
+% no machine-specific path.
+repoRoot = fileparts(fileparts(mfilename('fullpath')));
 addpath(fullfile(repoRoot,'src')); addpath(fullfile(repoRoot,'config'));
 cfg = default_config(repoRoot);
 lc = fullfile(repoRoot,'config','local_config.m'); if isfile(lc), run(lc); end
