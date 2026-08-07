@@ -40,6 +40,7 @@ jobs:
           if [ -d results/tables ] && [ -n "$(ls -A results/tables/*.csv 2>/dev/null)" ]; then
             python manuscript/build_v5_docx.py
             python manuscript/build_v5_supplement_docx.py
+            python tools/audit_numbers.py
           else
             echo "no result tables in this checkout; skipping document build"
           fi
