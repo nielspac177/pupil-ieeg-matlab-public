@@ -25,6 +25,7 @@ phg.makeMethodsFigure(cfg);
 
 analysis = phg.runDerivedAnalyses(tables.channel, cfg);
 ripple = phg.runRippleBandTest(tables.wavelet, tables.channel, cfg);
+receptors = phg.runReceptorAlignment(tables.channel, cfg);
 
 phg.makeDerivedPublicationFigures(tables, cfg, analysis);
 phg.makeElectrodeLocalization(tables.channel, cfg, 'mode', "effect");
