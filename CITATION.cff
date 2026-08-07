@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this code, please cite it as below."
+title: "pupil-ieeg-matlab: a hurdle-model pipeline for pupil-linked intracranial electrophysiology"
+abstract: >-
+  MATLAB analysis code for relating spontaneous high-gamma activity to pupil
+  diameter in human intracranial recordings. Implements a two-part hurdle model
+  of a semicontinuous coupling outcome, with contacts nested in electrode shafts
+  nested in patients, FDR-controlled region families, a within-patient paired
+  check, and a selection-threshold sensitivity analysis. Code and methods only;
+  no participant data.
+type: software
+license: MIT
+repository-code: "https://github.com/nielspac177/pupil-ieeg-matlab-public"
+keywords:
+  - pupillometry
+  - intracranial EEG
+  - high-gamma
+  - arousal
+  - hippocampus
+  - mixed-effects models
+  - reproducibility
+authors:
+  - family-names: Pacheco-Barrios
+    given-names: Niels
+    affiliation: "Department of Neurosurgery, Brigham and Women's Hospital, Boston, MA, USA"

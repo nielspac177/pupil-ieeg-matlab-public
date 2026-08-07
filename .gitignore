@@ -1,0 +1,44 @@
+# Patient-level and raw data must never be committed.
+data/
+sourcedata/
+work/raw/
+work/bids/
+*.ns[1-9]
+*.nev
+*.nf3
+*.pldata
+*.edf
+*.eeg
+*.fdt
+*.set
+*.nwb
+*.mefd/
+*.nii
+*.nii.gz
+
+# Local paths and generated caches.
+config/local_config.m
+work/cache/
+work/logs/
+*.asv
+*.m~
+.DS_Store
+
+# Generated results are reproducible and are not source files.
+results/figures/*
+results/tables/*
+results/run_manifest.json
+!results/figures/.gitkeep
+!results/tables/.gitkeep
+
+# Generated figures and tables ARE committed: a reader who cannot be given the
+# source recordings can still inspect exactly what the pipeline produced.
+!results/figures/*.png
+!results/figures/*.pdf
+!results/tables/*.csv
+!results/tables/*.txt
+!results/run_manifest.json
+
+results/
+manuscript/
+submission/
