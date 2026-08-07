@@ -178,6 +178,46 @@ regionDirectionTable.complete_separation = separated;
 phg.writeTableAtomic(regionDirectionTable, ...
     fullfile(cfg.tableDir, 'polarity_by_region_exploratory.csv'));
 
+%% -------- Part 2 robustness: is the effect carried by one participant?
+% The within-patient paired test below uses the patient as the unit of
+% analysis but has only a handful of informative patients. This complements it
+% from the other direction: refit the contact-level model with each patient
+% held out in turn. If the estimate is stable across all 18 refits, no single
+% participant is carrying the result, whatever the paired test's power.
+loPatients = categories(removecats(excursionTable.PtID));
+loOdds = nan(numel(loPatients), 1);
+loLow = nan(numel(loPatients), 1);
+loHigh = nan(numel(loPatients), 1);
+loP = nan(numel(loPatients), 1);
+loN = nan(numel(loPatients), 1);
+for k = 1:numel(loPatients)
+    kept = excursionTable(string(excursionTable.PtID) ~= string(loPatients{k}), :);
+    kept.PtID = removecats(kept.PtID);
+    if numel(unique(kept.ContactClass)) < 2 || numel(unique(kept.IsDilation)) < 2
+        continue
+    end
+    heldOutModel = fitglme(kept, ...
+        'IsDilation ~ ContactClass + (1|PtID) + (1|PtID:Lead)', ...
+        'Distribution', 'Binomial', 'Link', 'logit', 'FitMethod', 'Laplace');
+    heldOutTable = localOddsTable(heldOutModel, "ContactClass");
+    row = heldOutTable(startsWith(heldOutTable.term, "ContactClass"), :);
+    if isempty(row)
+        continue
+    end
+    loOdds(k) = row.odds_ratio(1);
+    loLow(k) = row.odds_ratio_ci95_low(1);
+    loHigh(k) = row.odds_ratio_ci95_high(1);
+    loP(k) = row.p_value(1);
+    loN(k) = height(kept);
+end
+leaveOneOutTable = table(string(loPatients), loN, loOdds, loLow, loHigh, loP, ...
+    'VariableNames', {'held_out_patient', 'n_excursion_contacts', ...
+    'odds_ratio_hippocampal', 'odds_ratio_ci95_low', 'odds_ratio_ci95_high', ...
+    'p_value'});
+phg.writeTableAtomic(leaveOneOutTable, ...
+    fullfile(cfg.tableDir, 'polarity_leave_one_patient_out.csv'));
+outputs.leaveOneOutTable = leaveOneOutTable;
+
 %% ------------- Part 2 robustness: patient as the unit of replication
 % A within-patient paired comparison removes every between-patient confound and
 % uses the patient count, not the contact count, as the sample size.
