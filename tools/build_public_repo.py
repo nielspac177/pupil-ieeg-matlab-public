@@ -35,9 +35,11 @@ PUBLIC_URL = "https://github.com/nielspac177/pupil-ieeg-matlab-public"
 COPY_TREES = ["src", "tests", "config", "tools", "examples", ".github"]
 COPY_FILES = ["run_all.m", "run_tests.m", "LICENSE",
               ".gitignore", "docs/analysis_plan.md", "docs/raw_data_contract.md",
+              "docs/methods_diagram.md",
               "docs/supplied_data_inventory.md"]
 
 METHODS_FIGURE = REPO / "results" / "figures" / "Fig0_methods_schematic.png"
+PIPELINE_FIGURE = REPO / "results" / "figures" / "Fig0b_methods_pipeline.png"
 MANUSCRIPT = REPO / "manuscript" / "Pupil_MS_v5.docx"
 
 # Sections of the manuscript that constitute the public methods record.
@@ -163,8 +165,10 @@ easy to get wrong:
 The pipeline therefore fits a two-part hurdle model — prevalence, then
 direction, then magnitude — with contacts nested in electrode shafts nested in
 patients, FDR-controlled region families, a within-patient paired check, and a
-sensitivity analysis across selection thresholds. See [`METHODS.md`](METHODS.md)
-and [`docs/analysis_plan.md`](docs/analysis_plan.md).
+sensitivity analysis across selection thresholds. The pipeline is drawn as a
+Mermaid flowchart in [`docs/methods_diagram.md`](docs/methods_diagram.md), which
+renders inline on GitHub and is the source of the figure in the paper. See also
+[`METHODS.md`](METHODS.md) and [`docs/analysis_plan.md`](docs/analysis_plan.md).
 
 ## Reusing it on your own data
 
@@ -250,6 +254,8 @@ def main() -> int:
 
     (destination / "figures").mkdir(exist_ok=True)
     shutil.copy2(METHODS_FIGURE, destination / "figures" / METHODS_FIGURE.name)
+    if PIPELINE_FIGURE.exists():
+        shutil.copy2(PIPELINE_FIGURE, destination / "figures" / PIPELINE_FIGURE.name)
 
     (destination / "CITATION.cff").write_text(
         PUBLIC_CITATION.format(repository=PUBLIC_URL))

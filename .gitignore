@@ -39,6 +39,10 @@ results/run_manifest.json
 !results/tables/*.txt
 !results/run_manifest.json
 
+# Generated submission package (rebuilt by manuscript/build_submission_package.py)
+submission/
+submission_package.zip
+
 results/
 manuscript/
 submission/

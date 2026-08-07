@@ -38,8 +38,10 @@ easy to get wrong:
 The pipeline therefore fits a two-part hurdle model — prevalence, then
 direction, then magnitude — with contacts nested in electrode shafts nested in
 patients, FDR-controlled region families, a within-patient paired check, and a
-sensitivity analysis across selection thresholds. See [`METHODS.md`](METHODS.md)
-and [`docs/analysis_plan.md`](docs/analysis_plan.md).
+sensitivity analysis across selection thresholds. The pipeline is drawn as a
+Mermaid flowchart in [`docs/methods_diagram.md`](docs/methods_diagram.md), which
+renders inline on GitHub and is the source of the figure in the paper. See also
+[`METHODS.md`](METHODS.md) and [`docs/analysis_plan.md`](docs/analysis_plan.md).
 
 ## Reusing it on your own data
 
