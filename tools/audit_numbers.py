@@ -235,6 +235,33 @@ def main() -> int:
                     f"build_v5_docx.py:{line_number}: literal {literal} is a "
                     f"ledger value and should be interpolated, not typed")
 
+    # ------------------------------------------------------- bibliography
+    # Every reference must carry a resolvable identifier. Network verification
+    # against Crossref is a manual step (tools/ has no network in CI), but a
+    # missing or malformed DOI is caught here on every build.
+    # Only lines after the References heading. An in-text citation group such
+    # as "(Reimer et al., 2014; McGinley et al., 2015)" also carries a year and
+    # a semicolon, and matching on that alone flags body prose as a reference.
+    # Paragraphs only. document_text() appends every table cell after the
+    # paragraph stream, so slicing its output from "References" onward sweeps
+    # up table cells as if they were bibliography entries.
+    paragraphs = [p.text.strip() for p in Document(MAIN).paragraphs
+                  if p.text.strip()]
+    try:
+        start = paragraphs.index("References") + 1
+    except ValueError:
+        start = len(paragraphs)
+    reference_lines = paragraphs[start:]
+    for line in reference_lines:
+        if "doi:" not in line:
+            failures.append(f"reference without a DOI: {line[:70]}")
+        elif not re.search(r"doi:10\.\d{4,9}/\S+", line):
+            failures.append(f"malformed DOI: {line[-40:]}")
+    if reference_lines:
+        passes += 1
+        print(f"\nBibliography: {len(reference_lines)} references, "
+              f"{sum('doi:' in l for l in reference_lines)} with a DOI")
+
     # -------------------------------------------------- duplicate estimates
     ratios = re.findall(r"odds ratio (\d+\.\d{2,3})", text)
     for value in set(ratios):

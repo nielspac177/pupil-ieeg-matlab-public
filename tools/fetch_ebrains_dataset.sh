@@ -23,8 +23,32 @@ DATASET_ID="${DATASET_ID:-f2f41456-82d6-40cc-88e2-12a8d5b375f8}"
 TARGET="${TARGET:-/Volumes/Niels_3/ebrains_pupil_ieeg}"
 API="https://data-proxy.ebrains.eu/api/v1/buckets"
 
+# The token is a credential. Keep it in a file that only you can read rather
+# than pasting it into a chat or a shell history: the script reads it from
+# there, so it can be run by anything without the token ever being quoted.
+TOKEN_FILE="${TOKEN_FILE:-$HOME/.ebrains_token}"
+if [[ -z "${EBRAINS_TOKEN:-}" && -r "$TOKEN_FILE" ]]; then
+    EBRAINS_TOKEN="$(tr -d '[:space:]' < "$TOKEN_FILE")"
+fi
 if [[ -z "${EBRAINS_TOKEN:-}" ]]; then
-    echo "EBRAINS_TOKEN is not set. See the header of this script." >&2
+    cat >&2 <<'MSG'
+No EBRAINS token found.
+
+Get one (valid ~24 h), then save it:
+
+  1. Sign in at https://lab.ebrains.eu  (EBRAINS Collaboratory Lab)
+  2. New notebook, run:
+         from clb_nb_utils import oauth
+         print(oauth.get_token())
+  3. Copy the output, then in a terminal:
+         umask 077 && pbpaste > ~/.ebrains_token
+
+Alternative without the Lab: sign in to
+https://data-proxy.ebrains.eu/api/docs, click Authorize, and copy the
+bearer token from the browser devtools Network tab.
+
+Re-run this script afterwards; it resumes where it stopped.
+MSG
     exit 1
 fi
 
