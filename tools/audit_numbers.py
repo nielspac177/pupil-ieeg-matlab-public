@@ -313,6 +313,19 @@ def main() -> int:
         else:
             passes += 1
 
+        # The event spacing is the load-bearing fact behind "this cohort cannot
+        # isolate spontaneous activity", and it was originally typed from a
+        # single run rather than read from all of them.
+        density_file = TABLES / "replication_event_density.csv"
+        if not density_file.exists():
+            unmatched.append("replication event density table missing")
+        else:
+            density = pd.read_csv(density_file)
+            check("replication inter-event interval", "ratio",
+                  find_ratio(r"median interval between task events of "
+                             r"(\d+\.\d+) s"),
+                  density["median_inter_event_interval_seconds"].median())
+
         for ripple_name in ("replication_ripple_pupil_test_laplacian_1khz.csv",
                             "replication_ripple_pupil_test_raw_4khz.csv"):
             path = TABLES / ripple_name
