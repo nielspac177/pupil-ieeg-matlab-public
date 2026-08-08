@@ -262,6 +262,58 @@ def main() -> int:
         print(f"\nBibliography: {len(reference_lines)} references, "
               f"{sum('doi:' in l for l in reference_lines)} with a DOI")
 
+    # --------------------------------------------- documentation drift
+    # The working documents quote results in prose and nothing regenerates
+    # them, so they drift out of agreement with the tables and, worse, with
+    # each other. Every instance found so far was a figure that had been
+    # correct when written and was silently invalidated by a later analysis.
+    # These checks cover the quantities that have actually drifted.
+    docs = REPO / "docs"
+    doc_text = "\n".join(
+        p.read_text(errors="replace") for p in sorted(docs.glob("*.md")))
+
+    density_path = TABLES / "replication_event_density.csv"
+    if density_path.exists():
+        if True:
+            interval = pd.read_csv(density_path)[
+                "median_inter_event_interval_seconds"].median()
+            stated = set(re.findall(
+                r"median (?:inter-event )?(?:gap|interval)[^.]{0,60}?"
+                r"(\d+\.\d+) s", doc_text))
+            wrong = [v for v in stated if abs(float(v) - interval) > 0.05]
+            if wrong:
+                failures.append(
+                    f"docs quote an inter-event interval of {sorted(wrong)} s "
+                    f"against {interval:.2f} s in the table")
+            else:
+                passes += 1
+
+    # Counts of figures, tables and references are quoted in HANDOFF.md and
+    # have been wrong after every structural change to the paper.
+    handoff = docs / "HANDOFF.md"
+    if handoff.exists():
+        text_handoff = handoff.read_text(errors="replace")
+        document = Document(MAIN)
+        main_figures = sum(
+            1 for p in document.paragraphs
+            if re.match(r"^Figure \d+\.", p.text.strip()))
+        claimed = re.search(r"main (\d+) figures", text_handoff)
+        if claimed and int(claimed.group(1)) != main_figures:
+            failures.append(
+                f"HANDOFF claims {claimed.group(1)} main figures, "
+                f"the manuscript has {main_figures}")
+        elif claimed:
+            passes += 1
+
+        claimed_refs = re.search(r"(\d+) references all DOI-verified",
+                                 text_handoff)
+        if claimed_refs and int(claimed_refs.group(1)) != len(reference_lines):
+            failures.append(
+                f"HANDOFF claims {claimed_refs.group(1)} references, "
+                f"the manuscript has {len(reference_lines)}")
+        elif claimed_refs:
+            passes += 1
+
     # ------------------------------------------------- replication cohort
     # The replication introduces a second cohort with its own contact counts
     # and its own odds ratio, both of which are easy to confuse with the
