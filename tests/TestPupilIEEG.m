@@ -136,6 +136,77 @@ classdef TestPupilIEEG < matlab.unittest.TestCase
                 "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
             clear cleanup
         end
+
+        function appliesPrespecifiedReplicationRule(testCase)
+            % The replication verdict is the one number in this project most
+            % exposed to motivated reasoning, so the rule is tested against
+            % the wording of replication_plan_ebrains.md section 2 rather
+            % than trusted. The case that matters is the fourth: an odds
+            % ratio well below 1 whose interval crosses 1 is explicitly NOT
+            % a replication, however tempting it looks.
+            discovery = [0.021 0.207];
+            verdict = @(o, l, h) phg.replicationVerdict(o, l, h, discovery);
+
+            testCase.verifyEqual(verdict(0.065, 0.021, 0.207), "replication");
+            testCase.verifyEqual(verdict(0.50, 0.30, 0.85), "replication");
+
+            % OR inside the discovery interval, interval crosses 1.
+            testCase.verifyEqual(verdict(0.10, 0.01, 1.40), ...
+                "directionally_consistent_underpowered");
+            testCase.verifyEqual(verdict(0.207, 0.02, 2.10), ...
+                "directionally_consistent_underpowered");
+
+            % Below 1 and crossing 1, but outside the discovery interval:
+            % consistent in direction only, and not claimable as either.
+            testCase.verifyEqual(verdict(0.60, 0.20, 1.80), "inconclusive");
+            testCase.verifyEqual(verdict(0.010, 0.0001, 1.5), "inconclusive");
+
+            % Failure in both of its forms.
+            testCase.verifyEqual(verdict(1.00, 0.40, 2.50), "failure");
+            testCase.verifyEqual(verdict(3.20, 1.40, 7.30), "failure");
+
+            testCase.verifyEqual(verdict(NaN, NaN, NaN), "not_estimable");
+            testCase.verifyEqual(verdict(0.05, NaN, Inf), "not_estimable");
+        end
+
+        function periPeakMeasurementRecoversKnownResponses(testCase)
+            % The ported measurement must be sign-symmetric and must return
+            % exactly zero when nothing is locked to the peak times, because
+            % the hurdle model depends on that zero being structural.
+            repoRoot = fileparts(fileparts(mfilename('fullpath')));
+            cfg = default_config(repoRoot);
+            rng(20260807, 'twister');
+
+            fs = cfg.replication.pupilFs;
+            t = (0:1 / fs:2000 - 1 / fs)';
+            background = cumsum(randn(size(t))) / sqrt(fs);
+            background = background - movmean(background, 60 * fs);
+            peaks = (60:7:1940)';
+
+            kernelTime = (-2:1 / fs:6)';
+            kernel = 3 * exp(-((kernelTime - 1.5) / 1.2) .^ 2);
+            dilating = background;
+            for k = 1:numel(peaks)
+                first = round((peaks(k) + kernelTime(1)) * fs) + 1;
+                index = first:(first + numel(kernel) - 1);
+                inside = index >= 1 & index <= numel(dilating);
+                dilating(index(inside)) = dilating(index(inside)) + ...
+                    kernel(inside);
+            end
+
+            dilation = phg.measurePeriPeakResponse(dilating, t, peaks, cfg);
+            testCase.verifyGreaterThan(dilation.RespAreaNet, 0);
+            testCase.verifyGreaterThan(dilation.RespSig, 0);
+
+            null = phg.measurePeriPeakResponse(background, t, peaks, cfg);
+            testCase.verifyEqual(null.RespAreaNet, 0);
+            testCase.verifyEqual(null.RespSig, 0);
+
+            % The identity the hurdle decomposition rests on.
+            testCase.verifyEqual(null.RespAreaNet == 0, null.RespSig == 0);
+            testCase.verifyEqual(dilation.RespAreaNet == 0, ...
+                dilation.RespSig == 0);
+        end
     end
 end
 

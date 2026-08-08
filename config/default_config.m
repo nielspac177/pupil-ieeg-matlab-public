@@ -51,6 +51,38 @@ cfg.ripple.minimumDurationSeconds = 0.038;
 cfg.ripple.maximumRawAmplitudeUv = 300;
 cfg.ripple.spectralWindowSeconds = 0.250;
 
+% EBRAINS replication cohort. Every constant here is copied from the discovery
+% analysis object rather than chosen, so that a difference in result between
+% cohorts is attributable to the data. Verified against PHG_20s.mat:
+% obj.Fs = 1000, obj.BandPass = [70 170], obj.RRType = 'Laplace', obj.ThrX = 5,
+% obj.TimeRng = [-20000 20000]. See docs/replication_amendment_01.md.
+cfg.replication = struct;
+% The staged replication cohort is tens of gigabytes and lives on external
+% storage. Point cfg.replication.stageDir at it in local_config.m; the default
+% below keeps the repository free of machine-local paths.
+cfg.replication.stageDir = fullfile(cfg.workDir, 'ebrains_staging');
+cfg.replication.ieegFs = 1000;
+cfg.replication.pupilFs = 150;
+cfg.replication.highGammaHz = [70 170];
+cfg.replication.filterOrder = 1;          % butter(1, ...) then filtfilt
+cfg.replication.notchHz = 60:60:240;
+cfg.replication.notchBandwidth = 0.012;
+cfg.replication.thresholdIqr = 5;         % median + 5 * IQR
+cfg.replication.timeRangeMs = [-20000 20000];
+cfg.replication.responseWindowSeconds = 5;
+cfg.replication.numPermutations = 100;
+cfg.replication.maxTrialsPerPermutation = 1000;
+% Prespecified in the amendment, not inherited from discovery.
+cfg.replication.maxWindowMissingFraction = 0.40;
+cfg.replication.minPeaksPerContact = 10;
+cfg.replication.numCircularShifts = 1000;
+% The decision rule, fixed in docs/replication_plan_ebrains.md before the data
+% arrived. discoveryInterval is the discovery 95% interval for the primary
+% odds ratio and defines the "directionally consistent but underpowered" band.
+cfg.replication.discoveryInterval = [0.021 0.207];
+cfg.replication.minHippocampalExcursion = 10;
+cfg.replication.overlapAdjustmentGap = 0.05;
+
 % Pupil prediction defaults based on the EEGNet regression precedent.
 cfg.prediction = struct;
 cfg.prediction.trainingFraction = 0.80;

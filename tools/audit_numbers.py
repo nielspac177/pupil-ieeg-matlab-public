@@ -262,6 +262,72 @@ def main() -> int:
         print(f"\nBibliography: {len(reference_lines)} references, "
               f"{sum('doi:' in l for l in reference_lines)} with a DOI")
 
+    # ------------------------------------------------- replication cohort
+    # The replication introduces a second cohort with its own contact counts
+    # and its own odds ratio, both of which are easy to confuse with the
+    # discovery figures. Every one of them is checked against its table.
+    replication_file = TABLES / "replication_headline.csv"
+    if not replication_file.exists():
+        unmatched.append("replication headline table missing")
+    else:
+        rep = pd.read_csv(replication_file).iloc[0]
+        rep_coverage = load("replication_coverage_primary.csv")
+
+        check("replication odds ratio", "ratio",
+              find_ratio(r"extrahippocampal one was (\d+\.\d+)"),
+              rep["odds_ratio"])
+        check("replication CI low", "ratio",
+              find_ratio(r"extrahippocampal one was \d+\.\d+ \(\[(\d+\.\d+)"),
+              rep["ci95_low"])
+
+        rep_ledger = {
+            "replication contacts": int(rep_coverage["n_contacts"].sum()),
+            "replication excursion contacts": int(rep["n_excursion_contacts"]),
+            "replication hippocampal excursion":
+                int(rep["n_hippocampal_excursion_contacts"]),
+            "replication participants": int(rep["n_subjects"]),
+        }
+        print("\nReplication ledger")
+        for name, value in rep_ledger.items():
+            occurrences = len(re.findall(rf"\b{value}\b", text))
+            print(f"  {name:<34} {value:>5}   appears {occurrences}x")
+            if occurrences == 0:
+                unmatched.append(f"{name}={value} never appears in the paper")
+
+        # The two cohorts must not be conflated: the replication odds ratio and
+        # the discovery odds ratio are different numbers about different data.
+        if abs(float(rep["odds_ratio"]) - float(effect["odds_ratio"])) < 1e-9:
+            failures.append(
+                "replication and discovery odds ratios are identical, which "
+                "means one of them is being read from the wrong table")
+        else:
+            passes += 1
+
+        # The prespecified verdict must appear as written, not paraphrased into
+        # something stronger.
+        verdict = str(rep["prespecified_verdict"])
+        if verdict == "inconclusive" and "inconclusive" not in text.lower():
+            failures.append(
+                "the replication verdict is 'inconclusive' but the manuscript "
+                "never uses the word")
+        else:
+            passes += 1
+
+        for ripple_name in ("replication_ripple_pupil_test_laplacian_1khz.csv",
+                            "replication_ripple_pupil_test_raw_4khz.csv"):
+            path = TABLES / ripple_name
+            if not path.exists():
+                unmatched.append(f"{ripple_name} missing")
+                continue
+            row = pd.read_csv(path).iloc[0]
+            stated = len(re.findall(rf"\b{int(row['n_ripples'])}\b", text))
+            if stated == 0:
+                unmatched.append(
+                    f"ripple count {int(row['n_ripples'])} "
+                    f"({row['signal_source']}) never appears")
+            else:
+                passes += 1
+
     # -------------------------------------------------- duplicate estimates
     ratios = re.findall(r"odds ratio (\d+\.\d{2,3})", text)
     for value in set(ratios):

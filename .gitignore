@@ -42,6 +42,8 @@ results/run_manifest.json
 # Generated submission package (rebuilt by manuscript/build_submission_package.py)
 submission/
 submission_package.zip
+tools/__pycache__/
+work/venv/
 
 results/
 manuscript/

@@ -5,3 +5,4 @@
 % cfg.templateTpmFile = fullfile(cfg.leGUIRoot, 'tpm', 'TPM.nii');
 % cfg.rawDataRoot = "/mounted/private/raw/data";
 % cfg.eeglabRoot = "/absolute/path/to/eeglab";
+% cfg.replication.stageDir = "/mounted/external/ebrains_pupil_ieeg/staging";
