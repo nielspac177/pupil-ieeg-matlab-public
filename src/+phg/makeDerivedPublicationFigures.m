@@ -185,25 +185,35 @@ axB = nexttile(layout, 2);
 paired = analysis.pairedTable;
 paired = paired(~isnan(paired.hippocampal_dilation_rate) & ...
     ~isnan(paired.extrahippocampal_dilation_rate), :);
+% Panel a's legend defines coral as dilation-linked and teal as
+% constriction-linked. Re-using those two colours here for contact class and
+% for the direction of a patient's change gave one colour three meanings in a
+% single figure, and put a coral -- "dilation" -- marker at a dilation
+% fraction of zero. Both axes of this panel already encode contact class by
+% position, so the markers carry no colour information and the only colour
+% left is the one distinction a reader needs: which patients run against the
+% predicted direction.
 hold(axB, 'on');
 for k = 1:height(paired)
     difference = paired.hippocampal_dilation_rate(k) - ...
         paired.extrahippocampal_dilation_rate(k);
     if difference < 0
-        lineColor = style.constriction;
+        lineColor = style.gray;
+        lineWidth = 0.9;
     else
-        lineColor = style.dilation;
+        lineColor = style.sensorimotor;
+        lineWidth = 1.5;
     end
     plot(axB, [1 2], [paired.extrahippocampal_dilation_rate(k) ...
         paired.hippocampal_dilation_rate(k)], '-', 'Color', ...
-        [lineColor 0.55], 'LineWidth', 0.9);
+        [lineColor 0.75], 'LineWidth', lineWidth);
 end
 scatter(axB, ones(height(paired),1), ...
-    paired.extrahippocampal_dilation_rate, 24, style.dilation, 'filled', ...
-    'MarkerEdgeColor', 'white', 'LineWidth', 0.4, 'MarkerFaceAlpha', 0.85);
+    paired.extrahippocampal_dilation_rate, 24, style.gray, 'filled', ...
+    'MarkerEdgeColor', 'white', 'LineWidth', 0.4, 'MarkerFaceAlpha', 0.9);
 scatter(axB, 2*ones(height(paired),1), ...
-    paired.hippocampal_dilation_rate, 24, style.constriction, 'filled', ...
-    'MarkerEdgeColor', 'white', 'LineWidth', 0.4, 'MarkerFaceAlpha', 0.85);
+    paired.hippocampal_dilation_rate, 24, style.gray, 'filled', ...
+    'MarkerEdgeColor', 'white', 'LineWidth', 0.4, 'MarkerFaceAlpha', 0.9);
 axB.XTick = [1 2];
 axB.XTickLabel = {'Extra-hipp.', 'Hippocampus'};
 xlim(axB, [0.65 2.35]);
@@ -243,7 +253,7 @@ axC.YTick = 1:height(sensitivity);
 axC.YTickLabel = compose('%.2f', sensitivity.selection_threshold);
 axC.YDir = 'reverse';
 ylim(axC, [0.4 height(sensitivity)+0.6]);
-ylabel(axC, 'RespSig selection threshold');
+ylabel(axC, 'Contiguity selection threshold');
 xlabel(axC, 'Odds of dilation, hippocampal vs not');
 title(axC, 'Threshold sensitivity');
 phg.styleAxes(axC);
