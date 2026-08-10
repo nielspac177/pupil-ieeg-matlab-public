@@ -51,6 +51,18 @@ cfg.ripple.minimumDurationSeconds = 0.038;
 cfg.ripple.maximumRawAmplitudeUv = 300;
 cfg.ripple.spectralWindowSeconds = 0.250;
 
+% Spatial-gradient analysis. A shaft must span this much distance from the
+% hippocampal centroid before within-shaft variation means anything.
+cfg.gradient = struct;
+cfg.gradient.minimumShaftSpanMm = 5;
+cfg.gradient.numPermutations = 300;
+
+% Architecture analyses: frequency profile, response latency, spatial scale.
+cfg.architecture = struct;
+cfg.architecture.minimumFitR2 = 0.25;
+cfg.architecture.maximumLagMs = 20000;
+cfg.architecture.distanceBinsMm = [0 5 10 15 20 30 40 60 80 120];
+
 % EBRAINS replication cohort. Every constant here is copied from the discovery
 % analysis object rather than chosen, so that a difference in result between
 % cohorts is attributable to the data. Verified against PHG_20s.mat:

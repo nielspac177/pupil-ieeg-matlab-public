@@ -229,7 +229,13 @@ def main() -> int:
         if (line.lstrip().startswith("#") or "f\"" in line or "f'" in line
                 or "http" in line):
             continue
-        for literal in re.findall(r'"[^"]*?(\d{2,4})[^"]*?"', line):
+        # Cross-references carry digits that are not quantities: "Table S18",
+        # "Figure 9", "Fig. 4a". Flagging those trains a reader to ignore the
+        # warning, which is worse than not raising it.
+        scannable = re.sub(
+            r'\b(?:Table|Tables|Fig|Fig\.|Figure|Figures)\s+S?\d+[a-z]?', '',
+            line)
+        for literal in re.findall(r'"[^"]*?(\d{2,4})[^"]*?"', scannable):
             if literal in derivable:
                 suspicious.append(
                     f"build_v5_docx.py:{line_number}: literal {literal} is a "

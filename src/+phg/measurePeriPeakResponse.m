@@ -34,7 +34,8 @@ end
 
 response = struct('RespSig', 0, 'RespAreaNet', 0, 'RespAreaAbs', 0, ...
     'NPeaks', numel(peakTimes), 'NPeaksUsed', 0, 'MeanTrialCount', 0, ...
-    'WindowMissingFraction', NaN, 'EventOverlapFraction', NaN);
+    'WindowMissingFraction', NaN, 'EventOverlapFraction', NaN, ...
+    'FitHeight', NaN, 'FitR2', NaN, 'FitShift', NaN);
 diagnostics = struct('t', [], 'pd', [], 'pdse', [], 'pdrand', [], ...
     'pdserand', [], 'surrogateLevel', NaN);
 
@@ -133,12 +134,62 @@ response.RespAreaAbs = sum(abs([posArea; negArea]));
 response.RespSig = max(posFraction, negFraction);
 response.MeanTrialCount = mean(trialCount);
 
+% Gaussian fit to the mean response, matching the discovery cohort's stored
+% fit parameters. This is what makes the continuous, ungated outcome available
+% here: the signed amplitude is defined whether or not any suprathreshold run
+% was found, so the replication can be judged on the same scale the discovery
+% cohort's primary analysis now uses.
+[response.FitHeight, response.FitShift, response.FitR2] = ...
+    localGaussianFit(lagSeconds, pd);
+
 diagnostics.t = lagSeconds;
 diagnostics.pd = pd;
 diagnostics.pdse = pdse;
 diagnostics.pdrand = pdrand;
 diagnostics.pdserand = pdserand;
 diagnostics.surrogateLevel = surrogateLevel;
+end
+
+% -------------------------------------------------------------------------
+function [height, shift, rSquared] = localGaussianFit(lag, response)
+%LOCALGAUSSIANFIT Signed amplitude of a Gaussian fitted to the mean response.
+%   The discovery archive stores FitHeight from a four-parameter Gaussian
+%   a*exp(-((x-b)/c)^2)+d. The Curve Fitting Toolbox is not available here, so
+%   the same model is fitted with nlinfit from the Statistics Toolbox.
+
+height = NaN; shift = NaN; rSquared = NaN;
+finite = isfinite(lag) & isfinite(response);
+if sum(finite) < 20
+    return
+end
+x = lag(finite); y = response(finite);
+
+model = @(p, t) p(1) .* exp(-((t - p(2)) ./ max(p(3), 1e-6)) .^ 2) + p(4);
+
+% Starting values follow the discovery code, which starts the fit centred at
+% zero lag with a one-second width (PupilHG.m:552). Seeding from the global
+% extremum of a +/-20 s curve instead lets edge noise capture the fit.
+centre = abs(x) <= 5;
+baseline = median(y);
+[~, peakIndex] = max(abs(y(centre) - baseline));
+centralX = x(centre); centralY = y(centre);
+start = [centralY(peakIndex) - baseline, centralX(peakIndex), 1, baseline];
+
+options = statset('MaxIter', 400, 'Display', 'off');
+warningState = warning('off', 'all');
+try
+    beta = nlinfit(x, y, model, start, options);
+    fitted = model(beta, x);
+    residual = y - fitted;
+    total = y - mean(y);
+    if sum(total .^ 2) > 0
+        rSquared = 1 - sum(residual .^ 2) / sum(total .^ 2);
+    end
+    height = beta(1);
+    shift = beta(2);
+catch
+end
+warning(warningState);
 end
 
 % -------------------------------------------------------------------------

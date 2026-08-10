@@ -28,6 +28,19 @@ end
 
 runDirs = localListRuns(options.stageDir);
 if isempty(runDirs)
+    % Distinguish "the drive is not mounted" from "the data is missing".
+    % The staged cohort lives on external storage, so the common failure is a
+    % disconnected volume rather than a lost dataset, and the two need
+    % different responses.
+    parent = fileparts(options.stageDir);
+    if ~isfolder(parent)
+        error('phg:StagingVolumeUnavailable', ...
+            ['Staging volume is not mounted: %s does not exist. The ' ...
+             'replication cohort lives on external storage; reconnect the ' ...
+             'drive, or re-stage with tools/ingest_ebrains.py. Replication ' ...
+             'results already computed are in results/tables and need no ' ...
+             'access to this volume.'], parent);
+    end
     error('phg:NoStagedRuns', ...
         'No staged replication runs under %s', options.stageDir);
 end
@@ -247,6 +260,8 @@ NPeaksUsed = nan(n, 1);
 MeanTrialCount = nan(n, 1);
 WindowMissingFraction = nan(n, 1);
 EventOverlap = nan(n, 1);
+FitHeight = nan(n, 1);
+FitR2 = nan(n, 1);
 
 % Order contacts by participant so each stitched timeline is built once.
 subjectOf = strings(n, 1);
@@ -283,6 +298,8 @@ for index = 1:n
         peaks, cfg);
     EventOverlap(k) = localEventOverlap(entry.peakTimes, ...
         runEvents(entry.runIndices), cfg);
+    FitHeight(k) = response.FitHeight;
+    FitR2(k) = response.FitR2;
     RespSig(k) = response.RespSig;
     RespAreaNet(k) = response.RespAreaNet;
     RespAreaAbs(k) = response.RespAreaAbs;
@@ -298,10 +315,9 @@ end
 
 derived = table(PtID, Label, NMM, Shaft, XYZMNI, RespSig, RespAreaNet, ...
     RespAreaAbs, NPeaks, NPeaksUsed, MeanTrialCount, WindowMissingFraction, ...
-    EventOverlap);
+    EventOverlap, FitHeight, FitR2);
 derived.Chan = (1:height(derived))';
 derived.FitShift = nan(height(derived), 1);
-derived.FitR2 = nan(height(derived), 1);
 derived = sortrows(derived, {'PtID', 'Label'});
 end
 

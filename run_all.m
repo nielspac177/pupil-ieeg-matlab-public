@@ -23,6 +23,17 @@ phg.writeTableAtomic(audit, fullfile(cfg.tableDir, 'derived_data_audit.csv'));
 
 phg.makeMethodsFigure(cfg);
 
+% Primary analysis, on the scale this field uses: a continuous signed coupling
+% value modelled with linear mixed effects, no binarisation and no selection.
+% See runContinuousCouplingAnalyses for why this replaced the binary primary.
+continuous = phg.runContinuousCouplingAnalyses(tables.channel, cfg);
+gradientResult = phg.runSpatialGradient(tables.channel, cfg);
+effectMeasures = phg.runEffectMeasureComparison(tables.channel, cfg);
+architecture = phg.runCouplingArchitecture(tables, cfg);
+
+% The hurdle decomposition is retained as a secondary, comparability analysis:
+% it is what earlier versions reported, and the two framings should be visible
+% side by side rather than one silently replacing the other.
 analysis = phg.runDerivedAnalyses(tables.channel, cfg);
 sensitivity = phg.runPrimarySensitivity(tables.channel, cfg);
 referenceChecks = phg.runReferenceClassChecks(tables.channel, cfg);
