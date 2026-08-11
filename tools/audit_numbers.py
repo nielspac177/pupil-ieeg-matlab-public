@@ -331,11 +331,14 @@ def main() -> int:
         rep = pd.read_csv(replication_file).iloc[0]
         rep_coverage = load("replication_coverage_primary.csv")
 
+        # The prespecified odds ratio moved out of the running text and into
+        # the supplement table that keeps the registered criterion checkable,
+        # so these read the table cells rather than a sentence.
         check("replication odds ratio", "ratio",
-              find_ratio(r"extrahippocampal one was (\d+\.\d+)"),
+              find_ratio(r"extrahippocampal dilation\s*\n\s*(\d+\.\d+)"),
               rep["odds_ratio"])
         check("replication CI low", "ratio",
-              find_ratio(r"extrahippocampal one was \d+\.\d+ \(\[(\d+\.\d+)"),
+              find_ratio(r"95% confidence interval\s*\n\s*\[(\d+\.\d+)"),
               rep["ci95_low"])
 
         # Where the within-shaft gradient is centred. These numbers decide

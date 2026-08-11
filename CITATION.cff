@@ -1,13 +1,16 @@
 cff-version: 1.2.0
 message: "If you use this code, please cite it as below."
-title: "pupil-ieeg-matlab: a hurdle-model pipeline for pupil-linked intracranial electrophysiology"
+title: "pupil-ieeg-matlab: analysis code for pupil-linked human intracranial high-gamma coupling"
 abstract: >-
   MATLAB analysis code for relating spontaneous high-gamma activity to pupil
-  diameter in human intracranial recordings. Implements a two-part hurdle model
-  of a semicontinuous coupling outcome, with contacts nested in electrode shafts
-  nested in patients, FDR-controlled region families, a within-patient paired
-  check, and a selection-threshold sensitivity analysis. Code and methods only;
-  no participant data.
+  diameter in human intracranial recordings. The primary analysis is a linear
+  mixed model of a continuous signed coupling amplitude, applied to every
+  contact with no thresholding or selection, with contacts nested in electrode
+  shafts nested in patients and FDR-controlled region families. Also implements
+  the spatial-gradient, frequency-profile and neuromodulator-density analyses,
+  a variogram-matched spatial null, and the earlier dichotomised hurdle model
+  retained as a secondary comparison. Code and methods only; no participant
+  data.
 type: software
 license: MIT
 repository-code: "https://github.com/nielspac177/pupil-ieeg-matlab-public"

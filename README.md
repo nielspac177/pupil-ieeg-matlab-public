@@ -1,10 +1,19 @@
-# pupil-ieeg-matlab (public mirror)
+# Pupil-linked intracranial high-gamma: analysis code and methods
 
 MATLAB analysis code for a study of how spontaneous high-gamma activity in the
-human brain relates to pupil diameter, from the Rolston Lab.
+human brain relates to pupil diameter, from the Rolston Lab. This repository is
+the code release accompanying the manuscript, and is the version of record for
+how the analysis was done.
 
-**This mirror contains code and methods only.** It contains no participant data,
-no result tables, and no rendered electrode positions. The recordings are
+![Measurement and model](figures/Fig0_methods_schematic.png)
+
+*The measurement. High-gamma peaks are detected on each contact, pupil diameter
+is averaged around every peak, and the signed amplitude of that peri-peak
+response is the analysed quantity. Full captions and the analysis pipeline are
+in [`METHODS.md`](METHODS.md).*
+
+**This repository contains code and methods only.** It contains no participant
+data, no result tables, and no rendered electrode positions. The recordings are
 covered by consent and institutional approvals that do not authorise public
 sharing, so `run_all` cannot be executed from this repository alone.
 
