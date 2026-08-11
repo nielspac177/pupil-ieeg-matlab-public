@@ -31,6 +31,7 @@ gradientResult = phg.runSpatialGradient(tables.channel, cfg);
 phg.makeContinuousPrimaryFigure(tables.channel, cfg, ...
     'wavelet', tables.wavelet);
 originSpecificity = phg.runGradientOriginSpecificity(tables.channel, cfg);
+continuousRobustness = phg.runContinuousRobustness(tables.channel, cfg);
 effectMeasures = phg.runEffectMeasureComparison(tables.channel, cfg);
 architecture = phg.runCouplingArchitecture(tables, cfg);
 

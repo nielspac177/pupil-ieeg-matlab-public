@@ -145,11 +145,17 @@ def main() -> int:
 
     polarity = load("polarity_primary_glme.csv")
     effect = polarity[polarity["term"].str.contains("Hippocampal")].iloc[0]
+    # The dichotomised contrast is no longer summarised as a ratio in running
+    # text; the model's odds ratio survives only in the supplement tables, so
+    # these read the row rather than a sentence. Anchoring on the coefficient
+    # and standard error that precede it keeps the match specific -- an
+    # earlier version of this check matched a different sentence entirely and
+    # compared the wrong number.
     check("primary odds ratio", "ratio",
-          find_ratio(r"odds ratio for dilation of (\d+\.\d+)"),
+          find_ratio(r"Hippocampal\s*\n\s*[−-][\d.]+\s*\n\s*[\d.]+\s*\n\s*(\d+\.\d+)"),
           effect["odds_ratio"])
     check("primary CI low", "ratio",
-          find_ratio(r"odds ratio for dilation of \d+\.\d+ \(\[(\d+\.\d+)"),
+          find_ratio(r"Hippocampal\s*\n\s*[−-][\d.]+\s*\n\s*[\d.]+\s*\n\s*\d+\.\d+\s*\n\s*\[(\d+\.\d+)"),
           effect["odds_ratio_ci95_low"])
 
     # Region estimates are audited against the manuscript TABLE, not the prose.
@@ -198,23 +204,38 @@ def main() -> int:
         suspicious.append(
             "more than two sentences report an odds-ratio range with the same "
             "stem; disambiguate them")
-    if bounds:
-        check("sensitivity lower bound", "ratio", float(bounds.group(1)),
-              robust["odds_ratio_hippocampal"].min())
-        check("sensitivity upper bound", "ratio", float(bounds.group(2)),
-              robust["odds_ratio_hippocampal"].max())
+    # The threshold sweep no longer quotes a range of odds ratios in the text;
+    # it claims the direction and the significance hold at every threshold.
+    # That is the claim, so that is what is verified, against the same table
+    # the sentence points at.
+    if re.search(r"preserves the direction of the contrast at every "
+                 r"threshold, and it remains significant at every one", text):
+        same_direction = (robust["odds_ratio_hippocampal"] < 1).all()
+        check("threshold sweep direction holds", "count",
+              1.0 if same_direction else 0.0, 1.0)
+        check("threshold sweep significance holds", "count",
+              1.0 if (robust["p_value"] < 0.05).all() else 0.0, 1.0)
     else:
-        unmatched.append("threshold-sensitivity range sentence not found")
+        unmatched.append("threshold-sensitivity claim sentence not found")
 
-    leave_one_out = load("polarity_leave_one_patient_out.csv").dropna(
-        subset=["odds_ratio_hippocampal"])
-    lopo = re.search(r"holds the odds ratio within (\d+\.\d+) and (\d+\.\d+) "
-                     r"across all (\d+) refits", text)
+    # Leave-one-patient-out is now reported on the primary continuous scale,
+    # in standard deviations of the outcome, so this reads that sentence and
+    # converts the stored coefficients the same way the builder does.
+    leave_one_out = load("continuous_leave_one_patient_out.csv").dropna(
+        subset=["estimate"])
+    outcome_sd = float(
+        load("continuous_primary_summary.csv").iloc[0]["outcome_sd"])
+    lopo = re.search(r"holds the primary contrast between ([−-]?\d+\.\d+) and "
+                     r"([−-]?\d+\.\d+) standard deviations across all (\d+) "
+                     r"refits", text)
     if lopo:
-        check("leave-one-out lower", "ratio", float(lopo.group(1)),
-              leave_one_out["odds_ratio_hippocampal"].min())
-        check("leave-one-out upper", "ratio", float(lopo.group(2)),
-              leave_one_out["odds_ratio_hippocampal"].max())
+        def _num(g):
+            return float(g.replace("\u2212", "-"))
+        scaled = leave_one_out["estimate"] / outcome_sd
+        check("leave-one-out strongest", "ratio", _num(lopo.group(1)),
+              round(float(scaled.min()), 2))
+        check("leave-one-out weakest", "ratio", _num(lopo.group(2)),
+              round(float(scaled.max()), 2))
         check("leave-one-out refit count", "count", float(lopo.group(3)),
               len(leave_one_out))
     else:
