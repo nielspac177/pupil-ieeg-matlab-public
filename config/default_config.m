@@ -56,9 +56,19 @@ cfg.ripple.spectralWindowSeconds = 0.250;
 cfg.gradient = struct;
 cfg.gradient.minimumShaftSpanMm = 5;
 cfg.gradient.numPermutations = 300;
+% Candidate origins for the gradient-origin test need enough contacts to
+% define a centroid, and models within this AIC of the best are treated as
+% indistinguishable, following the conventional threshold of about four.
+cfg.gradient.minimumOriginContacts = 10;
+cfg.gradient.aicIndistinguishable = 4;
 
 % Architecture analyses: frequency profile, response latency, spatial scale.
 cfg.architecture = struct;
+% Surrogate count for the variogram-matched spatial null used by the receptor
+% analysis. This is the number that decides that result, so it lives here
+% rather than in a driver script.
+cfg.receptor.numSpatialSurrogates = 500;
+
 cfg.architecture.minimumFitR2 = 0.25;
 cfg.architecture.maximumLagMs = 20000;
 cfg.architecture.distanceBinsMm = [0 5 10 15 20 30 40 60 80 120];

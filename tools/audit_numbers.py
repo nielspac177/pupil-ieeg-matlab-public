@@ -338,6 +338,67 @@ def main() -> int:
               find_ratio(r"extrahippocampal one was \d+\.\d+ \(\[(\d+\.\d+)"),
               rep["ci95_low"])
 
+        # Where the within-shaft gradient is centred. These numbers decide
+        # whether the paper calls the gradient hippocampal or mesial temporal,
+        # so a drift here changes a claim rather than a decimal place.
+        origin_file = TABLES / "gradient_origin_summary.csv"
+        if origin_file.exists():
+            origin = pd.read_csv(origin_file).iloc[0]
+            check("gradient origins tested", "count",
+                  find_ratio(r"every one of (\d+) candidate origins"),
+                  origin["n_origins_tested"])
+            check("hippocampal origin rank", "count",
+                  find_ratio(r"hippocampal origin ranks (\d+) of"),
+                  origin["hippocampus_rank"])
+            check("hippocampal origin delta AIC", "ratio",
+                  find_ratio(r"sits (\d+\.\d+) AIC from the best"),
+                  round(float(origin["hippocampus_delta_aic"]), 1))
+            check("worst origin delta AIC", "count",
+                  find_ratio(r"is (\d+) AIC behind the best"),
+                  round(float(origin["worst_origin_delta_aic"])))
+            check("origin axis correlation", "ratio",
+                  find_ratio(r"hippocampal one at r \u2265 (\d+\.\d+)"),
+                  round(float(origin["min_axis_correlation_within_set"]), 2))
+        else:
+            unmatched.append("gradient origin summary missing")
+
+        # Cross-cohort comparison. These numbers decide whether the paper
+        # calls the replication inconclusive or negative, so a drift between
+        # the tables and the prose here would change a conclusion rather than
+        # a decimal place.
+        comparability_file = TABLES / "replication_comparability.csv"
+        heterogeneity_file = TABLES / "replication_heterogeneity.csv"
+        if comparability_file.exists() and heterogeneity_file.exists():
+            comp = pd.read_csv(comparability_file).set_index("cohort")
+            het = pd.read_csv(heterogeneity_file).iloc[0]
+
+            check("replication effect per residual SD", "ratio",
+                  find_ratio(r"rest of the implant by ([+-]\d+\.\d+) residual"),
+                  comp.loc["Replication", "beta_per_residual_sd"])
+            check("discovery effect per residual SD", "ratio",
+                  find_ratio(r"P = [^)]*\), against ([+-]\d+\.\d+) here"),
+                  comp.loc["Discovery", "beta_per_residual_sd"])
+            check("cohort heterogeneity z", "ratio",
+                  find_ratio(r"\(z = ([+-]?\d+\.\d+), P ="),
+                  het["z_statistic"])
+            check("replication detectable effect", "ratio",
+                  find_ratio(r"detect (\d+\.\d+) residual standard deviations"),
+                  het["replication_detectable_at_80_power"])
+            check("replication residual SD", "ratio",
+                  find_ratio(r"same amount as the discovery cohort \((\d+\.\d+) against"),
+                  comp.loc["Replication", "sd_residual"])
+            check("discovery residual SD", "ratio",
+                  find_ratio(r"same amount as the discovery cohort \(\d+\.\d+ against (\d+\.\d+)\)"),
+                  comp.loc["Discovery", "sd_residual"])
+            check("replication median fit R2", "ratio",
+                  find_ratio(r"with median R. of (\d+\.\d+) against"),
+                  comp.loc["Replication", "median_fit_r2"])
+            check("discovery median fit R2", "ratio",
+                  find_ratio(r"with median R. of \d+\.\d+ against (\d+\.\d+)"),
+                  comp.loc["Discovery", "median_fit_r2"])
+        else:
+            unmatched.append("replication comparability tables missing")
+
         rep_ledger = {
             "replication contacts": int(rep_coverage["n_contacts"].sum()),
             "replication excursion contacts": int(rep["n_excursion_contacts"]),

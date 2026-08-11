@@ -28,8 +28,24 @@ phg.makeMethodsFigure(cfg);
 % See runContinuousCouplingAnalyses for why this replaced the binary primary.
 continuous = phg.runContinuousCouplingAnalyses(tables.channel, cfg);
 gradientResult = phg.runSpatialGradient(tables.channel, cfg);
+phg.makeContinuousPrimaryFigure(tables.channel, cfg, ...
+    'wavelet', tables.wavelet);
+originSpecificity = phg.runGradientOriginSpecificity(tables.channel, cfg);
 effectMeasures = phg.runEffectMeasureComparison(tables.channel, cfg);
 architecture = phg.runCouplingArchitecture(tables, cfg);
+
+% The replication judged on the current primary scale, and the cross-cohort
+% comparison that decides whether its null is informative or merely quiet.
+% Both depend only on stored per-contact measures, so they run here rather
+% than inside the replication stage, which needs the raw recordings.
+if isfile(fullfile(cfg.tableDir, ...
+        'replication_contact_measures_gaze_regressed_ruleA.csv'))
+    replicationContinuous = phg.runReplicationContinuous(cfg);
+    comparability = phg.runReplicationComparability(tables.channel, cfg);
+else
+    fprintf(['[PHG] Replication measures absent; skipping the continuous ' ...
+        'replication and the cross-cohort comparison.\n']);
+end
 
 % The hurdle decomposition is retained as a secondary, comparability analysis:
 % it is what earlier versions reported, and the two framings should be visible

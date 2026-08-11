@@ -68,26 +68,52 @@ regionTable.label = phg.shortRegionLabel( ...
     extractAfter(regionTable.term, "Region_"));
 regionTable = sortrows(regionTable, 'standardised');
 y = 1:height(regionTable);
+
+% Convert each interval from model units to outcome standard deviations. The
+% ratio standardised/estimate is the same divisor for both ends of the
+% interval; it is computed per row rather than once because each region's
+% estimate carries its own rounding, and guarded because a region whose
+% estimate is essentially zero would otherwise produce an infinite bar.
+usableRow = abs(regionTable.estimate) > 1e-9;
+perSd = ones(height(regionTable), 1);
+perSd(usableRow) = regionTable.standardised(usableRow) ./ ...
+    regionTable.estimate(usableRow);
+lowSd = regionTable.ci95_low .* perSd;
+highSd = regionTable.ci95_high .* perSd;
+% The divisor is negative for constriction-coupled regions, which swaps the
+% ends of the interval; sort them back so low is left of high.
+flipped = lowSd > highSd;
+[lowSd(flipped), highSd(flipped)] = deal(highSd(flipped), lowSd(flipped));
+
 hold(ax, 'on');
 plot(ax, [0 0], [0.4 height(regionTable) + 0.6], '-', ...
     'Color', [0.6 0.6 0.6], 'LineWidth', 0.6);
 for k = 1:height(regionTable)
+    % Colour marks significance, and marks it the same way in both
+    % directions. Colouring every negative estimate while requiring q < 0.05
+    % of every positive one implied a constriction finding for regions whose
+    % interval comfortably spans zero.
     colour = style.gray;
-    if regionTable.standardised(k) < 0
-        colour = style.constriction;
-    elseif regionTable.fdr_q_value(k) < 0.05
-        colour = style.dilation;
+    if regionTable.fdr_q_value(k) < 0.05
+        if regionTable.standardised(k) < 0
+            colour = style.constriction;
+        else
+            colour = style.dilation;
+        end
     end
-    scale95 = (regionTable.ci95_high(k) - regionTable.ci95_low(k)) / ...
-        (2 * regionTable.estimate(k)) * regionTable.standardised(k);
-    plot(ax, regionTable.standardised(k) + [-1 1] * abs(scale95), ...
-        [y(k) y(k)], '-', 'Color', colour, 'LineWidth', 1.1);
+    plot(ax, [lowSd(k) highSd(k)], [y(k) y(k)], '-', ...
+        'Color', colour, 'LineWidth', 1.1);
     plot(ax, regionTable.standardised(k), y(k), 'o', 'MarkerSize', 4.5, ...
         'MarkerFaceColor', colour, 'MarkerEdgeColor', 'none');
 end
 hold(ax, 'off');
 set(ax, 'YTick', y, 'YTickLabel', regionTable.label);
 ylim(ax, [0.4, height(regionTable) + 0.6]);
+% Limits follow the intervals, so that no interval is silently truncated at
+% the axis edge and read as narrower than it is.
+span = [min(lowSd), max(highSd)];
+padding = 0.06 * diff(span);
+xlim(ax, [span(1) - padding, span(2) + padding]);
 xlabel(ax, 'Coupling relative to rest of implant (SD)');
 title(ax, 'Region ordering on the primary scale');
 phg.styleAxes(ax);

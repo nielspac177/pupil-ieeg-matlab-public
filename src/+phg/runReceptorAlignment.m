@@ -16,20 +16,23 @@ function outputs = runReceptorAlignment(channel, cfg)
 %      not a measurement of these brains.
 %   2. Receptor maps are spatially smooth and so is the brain, which makes
 %      naive p-values badly anticonservative. A variogram-matched spatial null
-%      HAS now been run (phg.spatialNullSurrogates, 500 surrogates per model)
-%      and it is the number that counts. The parametric p-values below are
-%      retained only to show the size of the inflation:
+%      is run for every model and it is the number that counts; the parametric
+%      p-values are retained only to show the size of the inflation.
 %
-%        NET,   all contacts     parametric 0.00015  spatial null 0.044
-%        NET,   neocortex only   parametric 0.0093   spatial null 0.138
-%        VAChT, all contacts     parametric 0.0019   spatial null 0.339
-%        VAChT, neocortex only   parametric 0.37     spatial null 0.597
+%      The dichotomised analysis, on the 285 gated contacts, was negative in
+%      the version that matters: NET cleared the spatial null over all
+%      contacts (0.044) but not in neocortex alone (0.138), which is where the
+%      cortex-versus-subcortex confound has been removed. On that evidence
+%      this function used to say a noradrenergic account was not supported.
 %
-%      The conclusion is negative. The only model that clears 0.05 against the
-%      spatial null is the one that still contains the cortex-versus-subcortex
-%      contrast; the neocortex-only model, which is the confound-free version
-%      and the one worth believing, does not. Do not report this as evidence
-%      for a noradrenergic account.
+%      On the continuous outcome, which needs no gate and so runs on 913
+%      contacts and 750 neocortical ones, the confound-free model does clear
+%      the null. The direction is the same and the sample is three times
+%      larger. VAChT does not clear it in neocortex alone, so the result is
+%      specific to the noradrenergic marker rather than a property of any
+%      smooth atlas. Current numbers are written to
+%      receptor_coupling_continuous.csv rather than quoted here, so that this
+%      comment cannot drift away from them.
 %   3. Subcortical PET is degraded by partial-volume effects, and the
 %      hippocampus sits next to the ventricles. A hippocampus-versus-cortex
 %      contrast on these maps can be an imaging artefact, which is why the
@@ -100,7 +103,64 @@ resultTable = vertcat(rows{:});
 phg.writeTableAtomic(resultTable, ...
     fullfile(cfg.tableDir, 'receptor_alignment.csv'));
 
-outputs = struct('resultTable', resultTable, 'contactTable', excursion);
+%% ------------------------------- Continuous outcome, with the spatial null
+% The analysis above dichotomises coupling direction and is restricted to the
+% contacts that cleared the excursion gate, which is the outcome this paper
+% used before the primary moved to a continuous signed amplitude. Repeating it
+% on the current primary is the same correction applied to the replication:
+% the outcome needs no gate, so the confound-free neocortex-only test runs on
+% 750 contacts rather than 222.
+%
+% The spatial null is computed here rather than in a separate driver script,
+% because it is the number that decides the result and a number that decides a
+% result should not live outside the pipeline that produces the paper.
+scale = median(abs(channel.FitHeight), 'omitnan');
+if ~isfinite(scale) || scale <= eps
+    scale = 1;
+end
+frame.Coupling = asinh(channel.FitHeight ./ scale);
+frame.CouplingSd = frame.Coupling ./ std(frame.Coupling, 'omitnan');
+
+continuousRows = cell(0, 1);
+for k = 1:numel(markerNames)
+    marker = markerNames(k);
+    for scope = ["All contacts", "Neocortex only"]
+        keep = isfinite(frame.(marker)) & isfinite(frame.Coupling);
+        if scope == "Neocortex only"
+            keep = keep & ~ismember(frame.Region, ["Hippocampus", "Amygdala"]);
+        end
+        subset = frame(keep, :);
+        subset.PtID = removecats(subset.PtID);
+        subset.Value = subset.(marker);
+        continuousRows{end + 1, 1} = localContinuousFit(subset, ...
+            coordinates(keep, :), marker, scope, ...
+            cfg.receptor.numSpatialSurrogates); %#ok<AGROW>
+    end
+end
+continuousTable = vertcat(continuousRows{:});
+
+% Both markers and both scopes form one family of four tests, so the decision
+% is made on Benjamini-Hochberg q values rather than on the raw spatial-null
+% p-values. Reporting the smallest of four uncorrected p-values as though it
+% stood alone is the error this column exists to prevent.
+continuousTable.fdr_q_value = phg.benjaminiHochberg( ...
+    continuousTable.spatial_null_p_value);
+phg.writeTableAtomic(continuousTable, ...
+    fullfile(cfg.tableDir, 'receptor_coupling_continuous.csv'));
+
+for k = 1:height(continuousTable)
+    fprintf(['[PHG] Receptor, continuous outcome: %s, %s — beta %+.3f ' ...
+        '(%.2f SD), parametric P = %.3g, spatial-null P = %.3f, ' ...
+        'q = %.3f (n = %d).\n'], continuousTable.marker(k), ...
+        continuousTable.sample(k), continuousTable.estimate(k), ...
+        continuousTable.standardised(k), ...
+        continuousTable.parametric_p_value(k), ...
+        continuousTable.spatial_null_p_value(k), ...
+        continuousTable.fdr_q_value(k), continuousTable.n_contacts(k));
+end
+
+outputs = struct('resultTable', resultTable, 'contactTable', excursion, ...
+    'continuousTable', continuousTable);
 
 for k = 1:height(resultTable)
     fprintf(['[PHG] Receptor alignment (parametric P shown; see ' ...
@@ -141,4 +201,42 @@ row = table(marker, string(sampleLabel), height(frame), ...
     exp(coefficients.Upper(k)), coefficients.pValue(k), ...
     'VariableNames', {'marker', 'sample', 'n_contacts', 'odds_ratio', ...
     'odds_ratio_ci95_low', 'odds_ratio_ci95_high', 'p_value'});
+end
+
+% -------------------------------------------------------------------------
+function row = localContinuousFit(subset, coordinates, marker, scope, ...
+    nSurrogates)
+%LOCALCONTINUOUSFIT Coupling on density, with a variogram-matched null.
+%   The observed coefficient is compared against models refitted on surrogate
+%   density maps that preserve the spatial smoothness of the real map and
+%   destroy only its correspondence with anatomy. A parametric p-value on two
+%   smooth maps is anticonservative; this is the number that counts.
+
+formula = 'Coupling ~ Value + (1|PtID) + (1|PtID:Lead)';
+model = fitlme(subset, formula, 'FitMethod', 'REML');
+[~, ~, stats] = fixedEffects(model, 'DFMethod', 'satterthwaite');
+index = find(string(stats.Name) == "Value", 1);
+observed = stats.Estimate(index);
+
+surrogates = phg.spatialNullSurrogates(subset.Value, coordinates, nSurrogates);
+nullBeta = nan(nSurrogates, 1);
+surrogateFrame = subset;
+for k = 1:nSurrogates
+    surrogateFrame.Value = surrogates(:, k);
+    try
+        nullModel = fitlme(surrogateFrame, formula, 'FitMethod', 'REML');
+        nullBeta(k) = nullModel.Coefficients.Estimate( ...
+            strcmp(nullModel.Coefficients.Name, 'Value'));
+    catch
+    end
+end
+valid = isfinite(nullBeta);
+spatialP = (1 + sum(abs(nullBeta(valid)) >= abs(observed))) / (1 + sum(valid));
+
+row = table(marker, scope, height(subset), observed, stats.Lower(index), ...
+    stats.Upper(index), observed / std(subset.Coupling, 'omitnan'), ...
+    stats.pValue(index), spatialP, sum(valid), 'VariableNames', ...
+    {'marker', 'sample', 'n_contacts', 'estimate', 'ci95_low', 'ci95_high', ...
+    'standardised', 'parametric_p_value', 'spatial_null_p_value', ...
+    'n_surrogates'});
 end
