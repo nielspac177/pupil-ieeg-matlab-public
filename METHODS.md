@@ -6,6 +6,10 @@ Exported verbatim from the submitted manuscript by `tools/build_public_repo.py`.
 
 *Figure 1. Measurement and model. (a) High-gamma peaks are detected in each contact. (b) Pupil diameter is averaged around every peak and compared with a surrogate band built from uniformly drawn time points; the stored statistic is the fraction of the window spanned by the longest contiguous run above that band, which is a contiguity criterion and not a p-value. (c) A contact with no suprathreshold run contributes an exact zero, so the outcome is semicontinuous and a single regression on it is misspecified; the distribution shown is schematic and the observed proportions are given in the Results. (d) The two processes are therefore modelled separately, with contacts nested in shafts nested in patients. Traces in (a) and (b) are synthetic illustrations, not data.*
 
+![Analysis pipeline](figures/Fig0b_methods_pipeline.png)
+
+*Figure 2. Analysis pipeline. Each contact yields one signed peri-peak response. The single branch is the one that determines the model: a contact whose longest contiguous run never clears the surrogate band contributes an outcome of exactly zero rather than a small number, so prevalence must be modelled separately from direction and magnitude. Part 1 is fitted to all 913 contacts; parts 2 and 3 are fitted to the 285 with an excursion. All three carry random intercepts for patient and for electrode shaft within patient. This diagram is generated from docs/methods_diagram.md in the project repository, where it is version-controlled as text.*
+
 ## Materials and methods
 
 ### Participants

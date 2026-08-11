@@ -48,11 +48,16 @@ STOP_SECTIONS = ["Results"]
 
 
 def export_methods() -> str:
-    """Pull the Methods section, and the Figure 1 caption, out of the .docx."""
+    """Pull the Methods section, and both methods-figure captions, out of the
+    .docx. Figure 1 is the measurement schematic and Figure 2 the analysis
+    pipeline; both are shipped in figures/, but only the first used to be
+    referenced, which left the pipeline diagram in the repository as a file
+    nothing pointed at."""
     document = Document(MANUSCRIPT)
     lines: list[str] = []
     capturing = False
     caption = ""
+    pipeline_caption = ""
 
     for paragraph in document.paragraphs:
         text = paragraph.text.strip()
@@ -61,6 +66,8 @@ def export_methods() -> str:
         style = paragraph.style.name
         if text.startswith("Figure 1."):
             caption = text
+        if text.startswith("Figure 2."):
+            pipeline_caption = text
         if style == "Heading 1":
             if text in EXPORT_SECTIONS:
                 capturing = True
@@ -93,6 +100,10 @@ def export_methods() -> str:
         "![Measurement and model](figures/Fig0_methods_schematic.png)",
         "",
         f"*{caption}*" if caption else "",
+        "",
+        "![Analysis pipeline](figures/Fig0b_methods_pipeline.png)",
+        "",
+        f"*{pipeline_caption}*" if pipeline_caption else "",
         "",
     ]
     return "\n\n".join(part for part in header + lines if part) + "\n"
